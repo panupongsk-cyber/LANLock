@@ -56,6 +56,26 @@
             </div>
         </header>
 
+        <!-- Setup Panel (Collapsible or just above stats) -->
+        <div id="setupPanel" class="setup-panel">
+            <div class="setup-grid">
+                <div class="setup-group">
+                    <label>👥 Eligible Student IDs (Optional)</label>
+                    <textarea id="eligibleStudents" class="eligible-list-input"
+                        placeholder="Enter student IDs separated by commas..."></textarea>
+                    <p class="hint" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 5px;">Leave
+                        empty to allow all students.</p>
+                </div>
+                <div class="setup-group">
+                    <label>🔑 Registration Password (Optional)</label>
+                    <input type="text" id="regPassword" class="session-input" placeholder="Lobby password...">
+
+                    <label style="margin-top: 15px;">🔐 Exit Code</label>
+                    <input type="text" id="exitCode" class="session-input" placeholder="1234" value="1234">
+                </div>
+            </div>
+        </div>
+
         <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-card server-info">
@@ -95,20 +115,33 @@
             </div>
         </div>
 
-        <!-- Status Legend -->
-        <div class="legend">
-            <span class="legend-item"><span class="dot green"></span> Focused</span>
-            <span class="legend-item"><span class="dot yellow"></span> Focus Lost</span>
-            <span class="legend-item"><span class="dot red"></span> Offline</span>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('students')">Students</button>
+            <button class="tab-btn" onclick="switchTab('logs')">Exam Logs</button>
         </div>
 
         <!-- Student Grid -->
-        <main class="main-content">
+        <main id="studentsView" class="main-content">
             <div id="studentGrid" class="student-grid">
                 <div class="empty-state">
                     <span class="empty-icon">📡</span>
                     <p>Waiting for students to connect...</p>
                     <p class="hint">Students should open the exam client and log in</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Log Viewer -->
+        <main id="logsView" class="main-content hidden">
+            <div class="log-container">
+                <div class="log-layout">
+                    <div id="logList" class="log-list">
+                        <!-- Log files will be inserted here -->
+                    </div>
+                    <div id="logContent" class="log-content-wrapper">
+                        Select a log file to view details...
+                    </div>
                 </div>
             </div>
         </main>

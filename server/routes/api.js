@@ -11,6 +11,7 @@ const db = require('../database/init');
 const socketService = require('../services/socket');
 const config = require('../config');
 const os = require('os');
+const logger = require('../services/logger');
 
 // Load exam data
 let examData = null;
@@ -85,20 +86,30 @@ router.get('/server-info', (req, res) => {
 // POST /api/exam/control - Control exam state
 // Actions: open_lobby, start, stop, reset
 router.post('/exam/control', (req, res) => {
-    const { action, duration_minutes, exam_title, exam_rules, exit_code } = req.body;
+    const { action, duration_minutes, exam_title, exam_rules, exit_code, reg_password, eligible_students } = req.body;
 
     if (action === 'open_lobby') {
         // Open lobby for students to connect
         const title = exam_title || 'Exam';
         const rules = exam_rules || 'Please wait for the exam to begin.';
         const code = exit_code || '1234';
+        const password = reg_password || null;
+        const eligible = eligible_students || null;
 
-        db.examState.openLobby(title, rules, code);
+        // Clear previous students for a clean session
+        db.students.clearAll();
+
+        db.examState.openLobby(title, rules, code, password, eligible);
         const state = db.examState.get();
+
+        // Start a new log session
+        logger.startSession(title);
+        logger.log(`[Exam] Lobby opened: ${title}`);
+        if (password) logger.log('[Exam] Registration password required');
+        if (eligible) logger.log(`[Exam] Eligible students restricted: ${eligible.substring(0, 50)}...`);
 
         socketService.broadcastExamState(state);
 
-        console.log(`[Exam] Lobby opened: ${title}, exit code: ${code}`);
         res.json({ success: true, state });
 
     } else if (action === 'start') {
@@ -113,27 +124,27 @@ router.post('/exam/control', (req, res) => {
         db.examState.start(duration);
         const state = db.examState.get();
 
+        logger.log(`[Exam] Started with duration: ${duration} minutes`);
         socketService.broadcastExamState(state);
 
-        console.log(`[Exam] Started with duration: ${duration} minutes`);
         res.json({ success: true, state });
 
     } else if (action === 'stop') {
         db.examState.stop();
         const state = db.examState.get();
 
+        logger.log('[Exam] Stopped');
         socketService.broadcastExamState(state);
 
-        console.log('[Exam] Stopped');
         res.json({ success: true, state });
 
     } else if (action === 'reset') {
         db.examState.reset();
         const state = db.examState.get();
 
+        logger.log('[Exam] Reset to setup');
         socketService.broadcastExamState(state);
 
-        console.log('[Exam] Reset to setup');
         res.json({ success: true, state });
 
     } else {
@@ -253,6 +264,45 @@ router.post('/shutdown', (req, res) => {
         console.log('[Server] Goodbye!');
         process.exit(0);
     }, 1000);
+});
+
+// GET /api/logs - List log files
+router.get('/logs', (req, res) => {
+    const logs = logger.listLogs();
+    res.json(logs);
+});
+
+// GET /api/logs/:filename - Get log content
+router.get('/logs/:filename', (req, res) => {
+    const content = logger.readLog(req.params.filename);
+    if (content === null) {
+        return res.status(404).json({ error: 'Log not found' });
+    }
+    res.json({ content });
+});
+
+// POST /api/register - Validate student registration
+router.post('/register', (req, res) => {
+    const { student_id, student_name, reg_password } = req.body;
+    const state = db.examState.get();
+
+    // Check if student is eligible
+    if (state.eligible_students) {
+        const eligibleList = state.eligible_students.split(',').map(s => s.trim());
+        if (!eligibleList.includes(student_id)) {
+            logger.log(`[Reg] Rejected: ${student_id} (${student_name}) - Not on eligible list`);
+            return res.status(403).json({ error: 'You are not on the eligible student list' });
+        }
+    }
+
+    // Check registration password
+    if (state.reg_password && state.reg_password !== reg_password) {
+        logger.log(`[Reg] Rejected: ${student_id} (${student_name}) - Incorrect password`);
+        return res.status(401).json({ error: 'Incorrect registration password' });
+    }
+
+    logger.log(`[Reg] Success: ${student_id} (${student_name})`);
+    res.json({ success: true });
 });
 
 module.exports = router;

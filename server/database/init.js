@@ -187,6 +187,10 @@ const students = {
                 SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline
             FROM students
         `) || { total: 0, online: 0, focused: 0, offline: 0 };
+    },
+
+    clearAll: () => {
+        return run('DELETE FROM students');
     }
 };
 
@@ -232,12 +236,14 @@ const examState = {
         return get('SELECT * FROM exam_state WHERE id = 1') || {
             id: 1,
             state: 'setup',
-            is_active: 0
+            is_active: 0,
+            reg_password: null,
+            eligible_students: null
         };
     },
 
     // Open lobby - students can connect and see rules
-    openLobby: (examTitle, examRules, exitCode) => {
+    openLobby: (examTitle, examRules, exitCode, regPassword, eligibleStudents) => {
         return run(`
             UPDATE exam_state 
             SET state = 'lobby',
@@ -245,10 +251,12 @@ const examState = {
                 exam_title = ?,
                 exam_rules = ?,
                 exit_code = ?,
+                reg_password = ?,
+                eligible_students = ?,
                 started_at = NULL,
                 ends_at = NULL
             WHERE id = 1
-        `, [examTitle, examRules, exitCode || '1234']);
+        `, [examTitle, examRules, exitCode || '1234', regPassword, eligibleStudents]);
     },
 
     // Start exam - transition from lobby to active
@@ -282,7 +290,9 @@ const examState = {
                 started_at = NULL,
                 ends_at = NULL,
                 exam_title = NULL,
-                exam_rules = NULL
+                exam_rules = NULL,
+                reg_password = NULL,
+                eligible_students = NULL
             WHERE id = 1
         `);
     }

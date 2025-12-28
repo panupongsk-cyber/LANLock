@@ -18,6 +18,8 @@ const elements = {
     loginScreen: document.getElementById('loginScreen'),
     waitingScreen: document.getElementById('waitingScreen'),
     examScreen: document.getElementById('examScreen'),
+    regPasswordGroup: document.getElementById('regPasswordGroup'),
+    regPasswordInput: document.getElementById('registrationPassword'),
     loginForm: document.getElementById('loginForm'),
     studentIdInput: document.getElementById('studentId'),
     studentNameInput: document.getElementById('studentName'),
@@ -77,14 +79,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Login
-function login(event) {
+async function login(event) {
     event.preventDefault();
 
-    studentId = elements.studentIdInput.value.trim();
-    studentName = elements.studentNameInput.value.trim() || studentId;
+    const id = elements.studentIdInput.value.trim();
+    const name = elements.studentNameInput.value.trim();
+    const regPassword = elements.regPasswordInput.value.trim();
 
-    if (!studentId) {
+    if (!id) {
         showError('Please enter your Student ID');
+        return;
+    }
+
+    try {
+        // Validate registration first
+        const regRes = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                student_id: id,
+                student_name: name,
+                reg_password: regPassword
+            })
+        });
+
+        if (!regRes.ok) {
+            const data = await regRes.json();
+            showError(data.error || 'Registration failed');
+            return;
+        }
+
+        studentId = id;
+        studentName = name;
+
+        console.log(`Log in as: ${studentName} (${studentId})`);
+    } catch (err) {
+        console.error('Login/Registration failed:', err);
+        showError('Failed to connect to server or register. Please try again.');
         return;
     }
 
@@ -166,6 +197,15 @@ async function checkExamState() {
 // States: 'setup' | 'lobby' | 'active' | 'ended'
 function handleExamState(state) {
     const examMode = state.state || 'setup';
+
+    // Toggle registration password field based on server state
+    if (state.reg_password) {
+        elements.regPasswordGroup.classList.remove('hidden');
+        elements.regPasswordInput.required = true;
+    } else {
+        elements.regPasswordGroup.classList.add('hidden');
+        elements.regPasswordInput.required = false;
+    }
 
     switch (examMode) {
         case 'setup':

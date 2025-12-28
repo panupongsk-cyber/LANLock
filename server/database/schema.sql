@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS exam_state (
     ends_at DATETIME,
     exam_title TEXT,
     exam_rules TEXT,
-    exit_code TEXT DEFAULT '1234'
+    exit_code TEXT DEFAULT '1234',
+    reg_password TEXT,
+    eligible_students TEXT
 );
 
 -- Violations log: tracks focus loss and other violations

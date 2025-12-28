@@ -5,6 +5,7 @@
 
 const config = require('../config');
 const db = require('../database/init');
+const logger = require('./logger');
 
 let io = null;
 let heartbeatChecker = null;
@@ -46,7 +47,7 @@ function init(socketIo) {
         socket.on('violation:multi_monitor', (data) => {
             const { student_id, display_count, displays } = data;
 
-            console.log(`[Violation] Multi-monitor detected: ${student_id} has ${display_count} displays`);
+            logger.warn(`[Violation] Multi-monitor detected: ${student_id} has ${display_count} displays`);
 
             // Log to database
             db.violations.log(
@@ -64,19 +65,40 @@ function init(socketIo) {
             });
         });
 
+        // Focus violation
+        socket.on('violation:focus', (data) => {
+            if (studentId) {
+                db.violations.log(studentId, 'FOCUS_LOST', data.details);
+                logger.warn(`[Violation] ${studentId} - Focus Lost: ${data.details || 'Window switched'}`);
+
+                // Broadcast alert to dashboards
+                io.to('dashboard').emit('violation:alert', {
+                    student_id: studentId,
+                    type: 'focus_lost',
+                    details: data.details,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
         // Heartbeat from client
-        socket.on('heartbeat', (data) => {
-            const { student_id, is_focused } = data;
+        socket.on('student:heartbeat', (data) => {
+            if (studentId) {
+                const wasFocused = db.students.getById(studentId)?.is_focused;
+                db.students.updateHeartbeat(studentId, data.is_focused);
 
-            if (student_id) {
-                db.students.updateHeartbeat(student_id, is_focused);
-
+                // Log focus change
+                if (wasFocused !== undefined && wasFocused !== (data.is_focused ? 1 : 0)) {
+                    const status = data.is_focused ? 'REGAINED FOCUS' : 'LOST FOCUS';
+                    logger.log(`[Focus] ${studentId} ${status}`);
+                }
                 // If focus changed, broadcast update
                 broadcastStudentList();
             }
         });
 
-        // Focus lost event (immediate notification)
+        // Focus lost event (immediate notification) - This is now handled by 'violation:focus'
+        // Keeping the old handler for now, but it might be redundant if 'violation:focus' is the new standard.
         socket.on('focus:lost', (data) => {
             const { student_id } = data;
 
@@ -85,7 +107,7 @@ function init(socketIo) {
                 db.violations.log(student_id, 'FOCUS_LOST', 'Window focus lost');
                 db.students.updateHeartbeat(student_id, false);
 
-                console.log(`[Violation] Focus lost: ${student_id}`);
+                logger.warn(`[Violation] Focus lost: ${student_id}`);
 
                 // Broadcast to dashboard immediately
                 broadcastStudentList();
@@ -99,13 +121,14 @@ function init(socketIo) {
 
             if (student_id) {
                 db.students.updateHeartbeat(student_id, true);
+                logger.log(`[Focus] ${student_id} Regained focus`);
                 broadcastStudentList();
             }
         });
 
         // Dashboard connects
         socket.on('dashboard:connect', () => {
-            console.log('[Socket] Dashboard connected');
+            logger.log('[Socket] Dashboard connected');
             socket.join('dashboard');
 
             // Send current state
@@ -115,11 +138,12 @@ function init(socketIo) {
 
         // Handle disconnect
         socket.on('disconnect', () => {
-            console.log(`[Socket] Disconnected: ${socket.id}`);
-
-            if (socket.studentId) {
-                db.students.setOffline(socket.studentId);
+            if (studentId) {
+                db.students.setOffline(studentId);
+                logger.log(`[Socket] Student disconnected: ${studentId}`);
                 broadcastStudentList();
+            } else {
+                logger.log(`[Socket] Disconnected: ${socket.id}`);
             }
         });
 

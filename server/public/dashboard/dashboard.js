@@ -22,9 +22,15 @@ const elements = {
     onlineStudents: document.getElementById('onlineStudents'),
     focusedStudents: document.getElementById('focusedStudents'),
     violationCount: document.getElementById('violationCount'),
-    connectionStatus: document.getElementById('connectionStatus'),
     toastContainer: document.getElementById('toastContainer'),
-    serverIpDisplay: document.getElementById('serverIpDisplay')
+    serverIpDisplay: document.getElementById('serverIpDisplay'),
+    eligibleStudents: document.getElementById('eligibleStudents'),
+    regPassword: document.getElementById('regPassword'),
+    exitCode: document.getElementById('exitCode'),
+    studentsView: document.getElementById('studentsView'),
+    logsView: document.getElementById('logsView'),
+    logList: document.getElementById('logList'),
+    logContent: document.getElementById('logContent')
 };
 
 // Initialize
@@ -57,6 +63,13 @@ function initSocket() {
     socket.on('exam:state', (state) => {
         examState = state;
         updateExamControls(state);
+
+        // Sync setup fields if in lobby or active
+        if (state.state === 'lobby' || state.state === 'active') {
+            if (elements.eligibleStudents) elements.eligibleStudents.value = state.eligible_students || '';
+            if (elements.regPassword) elements.regPassword.value = state.reg_password || '';
+            if (elements.exitCode) elements.exitCode.value = state.exit_code || '1234';
+        }
     });
 
     socket.on('violation:alert', (data) => {
@@ -208,6 +221,9 @@ function updateExamControls(state) {
             if (durationInput) durationInput.disabled = true;
             if (examFile) examFile.disabled = true;
             if (sessionName) sessionName.disabled = true;
+            if (elements.eligibleStudents) elements.eligibleStudents.disabled = true;
+            if (elements.regPassword) elements.regPassword.disabled = true;
+            if (elements.exitCode) elements.exitCode.disabled = true;
 
             if (state.ends_at) {
                 startTimer(state.ends_at);
@@ -230,7 +246,10 @@ function updateExamControls(state) {
 // Open lobby - allow students to connect
 async function openLobby() {
     const sessionName = elements.sessionName.value.trim() || 'Exam Session';
-    const exitCode = document.getElementById('exitCode').value.trim() || '1234';
+    const exitCode = elements.exitCode.value.trim() || '1234';
+    const regPassword = elements.regPassword.value.trim() || null;
+    const eligibleStudents = elements.eligibleStudents.value.trim() || null;
+
     const rules = `Welcome to ${sessionName}!\n\nPlease wait for the instructor to start the exam.\n\nRules:\n• Do not close this window\n• Stay focused on the exam\n• No external help allowed`;
 
     try {
@@ -241,7 +260,9 @@ async function openLobby() {
                 action: 'open_lobby',
                 exam_title: sessionName,
                 exam_rules: rules,
-                exit_code: exitCode
+                exit_code: exitCode,
+                reg_password: regPassword,
+                eligible_students: eligibleStudents
             })
         });
 
@@ -338,6 +359,11 @@ async function resetExam() {
             examState = data.state;
             updateExamControls(data.state);
             elements.timer.textContent = '--:--:--';
+
+            // Clear inputs
+            elements.eligibleStudents.value = '';
+            elements.regPassword.value = '';
+            elements.exitCode.value = '1234';
         }
     } catch (err) {
         console.error('Failed to reset exam:', err);
@@ -584,5 +610,66 @@ async function shutdownServer() {
         alert('Error: ' + err.message);
         elements.shutdownBtn.disabled = false;
         elements.shutdownBtn.innerHTML = '<span>⏻</span> Shutdown';
+    }
+}
+
+// Tab Management
+function switchTab(tab) {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(t => t.classList.remove('active'));
+
+    if (tab === 'students') {
+        elements.studentsView.classList.remove('hidden');
+        elements.logsView.classList.add('hidden');
+        document.querySelector('.tab-btn[onclick*="students"]').classList.add('active');
+    } else {
+        elements.studentsView.classList.add('hidden');
+        elements.logsView.classList.remove('hidden');
+        document.querySelector('.tab-btn[onclick*="logs"]').classList.add('active');
+        fetchLogList();
+    }
+}
+
+// Log Management
+async function fetchLogList() {
+    try {
+        const res = await fetch('/api/logs');
+        const logs = await res.json();
+
+        if (logs.length === 0) {
+            elements.logList.innerHTML = '<div class="log-item">No logs found</div>';
+            return;
+        }
+
+        elements.logList.innerHTML = logs.map(log => {
+            const date = new Date(log.mtime).toLocaleString();
+            return `
+                <div class="log-item" onclick="fetchLogContent('${log.name}', this)">
+                    <div class="log-item-name">${log.name}</div>
+                    <div class="log-item-date">${date}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Failed to fetch logs:', err);
+        elements.logList.innerHTML = '<div class="log-item">Error loading logs</div>';
+    }
+}
+
+async function fetchLogContent(filename, element) {
+    // UI update
+    const items = document.querySelectorAll('.log-item');
+    items.forEach(i => i.classList.remove('active'));
+    element.classList.add('active');
+
+    elements.logContent.textContent = 'Loading...';
+
+    try {
+        const res = await fetch(`/api/logs/${filename}`);
+        const data = await res.json();
+        elements.logContent.textContent = data.content || 'Log file is empty';
+    } catch (err) {
+        console.error('Failed to fetch log content:', err);
+        elements.logContent.textContent = 'Error loading log content';
     }
 }
