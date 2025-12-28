@@ -338,6 +338,8 @@ function createWindow() {
 
         // Not in active exam (waiting/lobby/ended) - allow close
         if (!examIsActive) {
+            console.log('[Exit] Exam not active, allowing close');
+            app.isQuiting = true;
             enableDock();
             return; // Allow close
         }
@@ -518,19 +520,34 @@ ipcMain.on('register-student', (event, data) => {
     }
 });
 
-// Request exit from server
+// Request exit from server or handled locally if exam not active
 ipcMain.on('request-exit', (event, data) => {
+    if (!examIsActive) {
+        console.log('[Exit] Request received, exam not active - quitting');
+        app.isQuiting = true;
+        enableDock();
+        app.quit();
+        return;
+    }
+
     if (socket && socket.connected && studentId) {
         socket.emit('exit:request', {
             student_id: studentId,
-            student_name: data.student_name || studentId,
-            reason: data.reason || 'Student requested to exit'
+            student_name: (data && data.student_name) || studentId,
+            reason: (data && data.reason) || 'Student requested to exit'
         });
         console.log('Exit request sent to server');
     } else {
-        // Not connected, show error
+        // Not connected or no student ID, show error or allow exit if possible
         if (mainWindow) {
             mainWindow.webContents.send('exit-error', 'Not connected to server');
+        }
+
+        // If not connected and no exam is active, allow exit anyway
+        if (!examIsActive) {
+            app.isQuiting = true;
+            enableDock();
+            app.quit();
         }
     }
 });

@@ -23,13 +23,15 @@ const elements = {
     focusedStudents: document.getElementById('focusedStudents'),
     violationCount: document.getElementById('violationCount'),
     connectionStatus: document.getElementById('connectionStatus'),
-    toastContainer: document.getElementById('toastContainer')
+    toastContainer: document.getElementById('toastContainer'),
+    serverIpDisplay: document.getElementById('serverIpDisplay')
 };
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initSocket();
     loadExamInfo();
+    fetchServerInfo();
 });
 
 // Socket.io connection
@@ -75,6 +77,20 @@ function initSocket() {
 // Load exam info (no longer needed, session is input by instructor)
 async function loadExamInfo() {
     // Session name is now entered by instructor
+}
+
+// Fetch server info
+async function fetchServerInfo() {
+    try {
+        const res = await fetch('/api/server-info');
+        const data = await res.json();
+        if (data.ip) {
+            elements.serverIpDisplay.textContent = `${data.ip}:${data.port}`;
+        }
+    } catch (err) {
+        console.error('Failed to fetch server info:', err);
+        elements.serverIpDisplay.textContent = 'Unknown';
+    }
 }
 
 // Update student grid

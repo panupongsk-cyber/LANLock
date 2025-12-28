@@ -120,6 +120,11 @@ function initSocket() {
         checkExamState();
     });
 
+    socket.on('connect_error', (error) => {
+        console.log('Connection error:', error);
+        updateConnectionStatus(false);
+    });
+
     socket.on('disconnect', () => {
         console.log('Disconnected from server');
         updateConnectionStatus(false);
@@ -137,11 +142,23 @@ function initSocket() {
 // Check exam state
 async function checkExamState() {
     try {
-        const res = await fetch('/api/exam/state');
+        updateConnectionStatus(false, 'Connecting...');
+
+        // Use AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const res = await fetch('/api/exam/state', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const state = await res.json();
+        updateConnectionStatus(true);
         handleExamState(state);
     } catch (err) {
         console.error('Failed to check exam state:', err);
+        updateConnectionStatus(false, 'Waiting for Server...');
+        // Retry after a delay
+        setTimeout(checkExamState, 3000);
     }
 }
 
@@ -814,13 +831,13 @@ function showError(message) {
     elements.loginError.textContent = message;
 }
 
-function updateConnectionStatus(connected) {
+function updateConnectionStatus(connected, text) {
     if (connected) {
         elements.connectionIndicator.classList.remove('disconnected');
-        elements.connectionIndicator.querySelector('.status-text').textContent = 'Connected';
+        elements.connectionIndicator.querySelector('.status-text').textContent = text || 'Connected';
     } else {
         elements.connectionIndicator.classList.add('disconnected');
-        elements.connectionIndicator.querySelector('.status-text').textContent = 'Disconnected';
+        elements.connectionIndicator.querySelector('.status-text').textContent = text || 'Disconnected';
     }
 }
 
@@ -848,10 +865,7 @@ function requestExitFromExam() {
     // Check if running in kiosk mode (has lanlock API)
     if (window.lanlock) {
         // Show the exit code dialog (SEB-style)
-        if (window.lanlockShowExitDialog) {
-            window.lanlockShowExitDialog();
-        } else {
-            // Fallback: trigger via IPC
+        if (window.lanlock.requestExit) {
             window.lanlock.requestExit();
         }
     } else {

@@ -10,6 +10,7 @@ const path = require('path');
 const db = require('../database/init');
 const socketService = require('../services/socket');
 const config = require('../config');
+const os = require('os');
 
 // Load exam data
 let examData = null;
@@ -57,6 +58,28 @@ router.get('/exam/full', (req, res) => {
 router.get('/exam/state', (req, res) => {
     const state = db.examState.get();
     res.json(state);
+});
+
+// GET /api/server-info - Get server IP and info
+router.get('/server-info', (req, res) => {
+    const networkInterfaces = os.networkInterfaces();
+    const addresses = [];
+
+    for (const name of Object.keys(networkInterfaces)) {
+        for (const net of networkInterfaces[name]) {
+            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+            if (net.family === 'IPv4' && !net.internal) {
+                addresses.push(net.address);
+            }
+        }
+    }
+
+    res.json({
+        ip: addresses[0] || 'localhost',
+        all_ips: addresses,
+        port: config.PORT,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // POST /api/exam/control - Control exam state
