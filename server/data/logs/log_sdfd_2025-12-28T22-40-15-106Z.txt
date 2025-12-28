@@ -1,0 +1,8 @@
+[5:40:15 AM] [System] New Session Started: sdfd
+[5:40:15 AM] [System] Timestamp: 12/29/2025, 5:40:15 AM
+[5:40:15 AM] [Exam] Lobby opened: sdfd
+[5:40:15 AM] [Exam] Registration password required
+[5:40:15 AM] [Exam] Eligible students restricted: 123456778...
+[5:46:22 AM] [Exam] Started with duration: 60 minutes
+[5:48:43 AM] [Exam] Stopped
+[5:48:48 AM] [WARN] [Violation] Focus lost: 12345678

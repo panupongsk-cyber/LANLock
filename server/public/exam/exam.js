@@ -12,6 +12,8 @@ let currentQuestion = 0;
 let answers = {};
 let timerInterval = null;
 let autoSaveInterval = null;
+let connectionRetryCount = 0;
+const MAX_RETRY_COUNT = 10;
 
 // DOM Elements
 const elements = {
@@ -183,13 +185,21 @@ async function checkExamState() {
         clearTimeout(timeoutId);
 
         const state = await res.json();
+        connectionRetryCount = 0; // Reset on success
         updateConnectionStatus(true);
         handleExamState(state);
     } catch (err) {
         console.error('Failed to check exam state:', err);
-        updateConnectionStatus(false, 'Waiting for Server...');
-        // Retry after a delay
-        setTimeout(checkExamState, 3000);
+        connectionRetryCount++;
+
+        if (connectionRetryCount >= MAX_RETRY_COUNT) {
+            // Show persistent error with exit button
+            showConnectionError();
+        } else {
+            updateConnectionStatus(false, `Connecting... (${connectionRetryCount}/${MAX_RETRY_COUNT})`);
+            // Retry after a delay
+            setTimeout(checkExamState, 3000);
+        }
     }
 }
 
@@ -248,9 +258,40 @@ function showWaitingScreen(title, message) {
             <div class="loading-dots">
                 <span></span><span></span><span></span>
             </div>
+            <button type="button" class="btn btn-outline btn-block mt-20" onclick="requestExitFromExam()">
+                ✕ Exit Application
+            </button>
         </div>
     `;
     showScreen('waiting');
+}
+
+// Show connection error screen
+function showConnectionError() {
+    elements.waitingScreen.innerHTML = `
+        <div class="waiting-card">
+            <div class="waiting-icon" style="filter: grayscale(1);">🔌</div>
+            <h2 style="color: #ff4757;">Cannot Connect to Server</h2>
+            <p>Unable to connect to the exam server.</p>
+            <p style="font-size: 0.9rem; color: #666;">Please check if the server is running and try again.</p>
+            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center;">
+                <button type="button" class="btn btn-primary" onclick="retryConnection()">
+                    ↻ Retry Connection
+                </button>
+                <button type="button" class="btn btn-outline" onclick="requestExitFromExam()">
+                    ✕ Exit Application
+                </button>
+            </div>
+        </div>
+    `;
+    showScreen('waiting');
+}
+
+// Retry connection
+function retryConnection() {
+    connectionRetryCount = 0;
+    showWaitingScreen('Connecting...', 'Attempting to connect to server...');
+    checkExamState();
 }
 
 // Show lobby screen with exam title and rules
@@ -272,6 +313,9 @@ function showLobbyScreen(title, rules) {
                     <span></span><span></span><span></span>
                 </div>
             </div>
+            <button type="button" class="btn btn-outline btn-block mt-20" onclick="requestExitFromExam()">
+                ✕ Exit Application
+            </button>
         </div>
     `;
     showScreen('waiting');
