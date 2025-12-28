@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LANLock - Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setup-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #a0a0b0;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0b0;
+            font-size: 0.9rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        .row .form-group:first-child {
+            flex: 2;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="setup-container">
+        <div class="logo">🔒</div>
+        <h1>LANLock</h1>
+        <p class="subtitle">Exam Proctoring Client</p>
+
+        <form id="setupForm">
+            <div class="row">
+                <div class="form-group">
+                    <label for="serverIp">Server IP Address</label>
+                    <input type="text" id="serverIp" placeholder="192.168.1.100" required>
+                </div>
+                <div class="form-group">
+                    <label for="serverPort">Port</label>
+                    <input type="number" id="serverPort" value="2222" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="studentId">Student ID</label>
+                <input type="text" id="studentId" placeholder="e.g. 65012345">
+            </div>
+
+            <div class="form-group">
+                <label for="studentName">Name (Optional)</label>
+                <input type="text" id="studentName" placeholder="Your name">
+            </div>
+
+            <div class="error" id="errorMsg"></div>
+
+            <button type="submit" id="connectBtn">Connect to Exam</button>
+        </form>
+
+        <p class="hint" style="margin-top:20px">Contact your instructor for server IP</p>
+    </div>
+
+    <script>
+        const form = document.getElementById('setupForm');
+        const errorMsg = document.getElementById('errorMsg');
+        const connectBtn = document.getElementById('connectBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const serverIp = document.getElementById('serverIp').value.trim();
+            const serverPort = document.getElementById('serverPort').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+
+            if (!serverIp) {
+                showError('Please enter server IP address');
+                return;
+            }
+
+            if (!studentId) {
+                showError('Please enter your Student ID');
+                return;
+            }
+
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+            errorMsg.style.display = 'none';
+
+            // Send config to main process
+            try {
+                console.log('Saving config...');
+
+                // Check if lanlock API is available
+                if (!window.lanlock || !window.lanlock.saveConfig) {
+                    showError('LANLock API not available. Please restart the app.');
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect to Exam';
+                    return;
+                }
+
+                const result = await window.lanlock.saveConfig({
+                    server_ip: serverIp,
+                    server_port: parseInt(serverPort) || 2222,
+                    student_id: studentId,
+                    student_name: studentName || studentId
+                });
+
+                console.log('Save result:', result);
+
+                if (result && result.success) {
+                    connectBtn.textContent = 'Restarting...';
+                    // App will restart automatically
+                } else {
+                    showError(result?.error || 'Failed to save config');
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect to Exam';
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                showError('Error: ' + (err.message || 'Unknown error'));
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect to Exam';
+            }
+        });
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+        }
+
+        // Auto-focus first input
+        document.getElementById('serverIp').focus();
+    </script>
+</body>
+
+</html>

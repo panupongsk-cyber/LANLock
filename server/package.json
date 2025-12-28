@@ -1,0 +1,25 @@
+{
+  "name": "lanlock-server",
+  "version": "1.0.0",
+  "description": "LANLock Exam Proctoring Server - LAN-based exam monitoring system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "exam",
+    "proctoring",
+    "lan",
+    "education"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "sql.js": "^1.10.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "uuid": "^9.0.1"
+  }
+}

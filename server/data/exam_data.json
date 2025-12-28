@@ -1,0 +1,104 @@
+{
+    "exam_info": {
+        "title": "Computer Engineering Midterm",
+        "duration_minutes": 120,
+        "description": "This exam covers fundamental concepts in computer engineering including networking, operating systems, and programming."
+    },
+    "questions": [
+        {
+            "id": 1,
+            "type": "multiple_choice",
+            "text": "Which protocol is used for secure web browsing?",
+            "options": [
+                "HTTP",
+                "FTP",
+                "HTTPS",
+                "SMTP"
+            ],
+            "answer": "HTTPS",
+            "score": 1
+        },
+        {
+            "id": 2,
+            "type": "multiple_choice",
+            "text": "What is the default port for HTTP?",
+            "options": [
+                "21",
+                "22",
+                "80",
+                "443"
+            ],
+            "answer": "80",
+            "score": 1
+        },
+        {
+            "id": 3,
+            "type": "multiple_choice",
+            "text": "Which data structure uses LIFO (Last In, First Out) principle?",
+            "options": [
+                "Queue",
+                "Stack",
+                "Linked List",
+                "Tree"
+            ],
+            "answer": "Stack",
+            "score": 1
+        },
+        {
+            "id": 4,
+            "type": "short_answer",
+            "text": "Explain the concept of 'Deadlock' in operating systems.",
+            "score": 5
+        },
+        {
+            "id": 5,
+            "type": "short_answer",
+            "text": "What is the difference between TCP and UDP protocols?",
+            "score": 5
+        },
+        {
+            "id": 6,
+            "type": "coding",
+            "language": "c",
+            "text": "Write a C program to calculate the Factorial of N. The program should read an integer N from standard input and print the factorial of N.",
+            "default_code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    \n    // Your code here\n    \n    return 0;\n}",
+            "test_cases": [
+                {
+                    "input": "5",
+                    "expected_output": "120"
+                },
+                {
+                    "input": "0",
+                    "expected_output": "1"
+                },
+                {
+                    "input": "10",
+                    "expected_output": "3628800"
+                }
+            ],
+            "score": 10
+        },
+        {
+            "id": 7,
+            "type": "coding",
+            "language": "c",
+            "text": "Write a C program that reads an integer N and prints whether it is a prime number or not. Output 'YES' if prime, 'NO' otherwise.",
+            "default_code": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    \n    // Your code here\n    \n    return 0;\n}",
+            "test_cases": [
+                {
+                    "input": "7",
+                    "expected_output": "YES"
+                },
+                {
+                    "input": "4",
+                    "expected_output": "NO"
+                },
+                {
+                    "input": "2",
+                    "expected_output": "YES"
+                }
+            ],
+            "score": 10
+        }
+    ]
+}

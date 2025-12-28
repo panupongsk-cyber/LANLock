@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LANLock - Exam</title>
+    <link rel="stylesheet" href="exam.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-screen">
+            <div class="login-card">
+                <div class="login-header">
+                    <span class="login-icon">🔒</span>
+                    <h1>LANLock Exam</h1>
+                    <p>Enter your Student ID to begin</p>
+                </div>
+                <form id="loginForm" onsubmit="login(event)">
+                    <div class="input-group">
+                        <label for="studentId">Student ID</label>
+                        <input type="text" id="studentId" placeholder="e.g., 64100..." required autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label for="studentName">Name (Optional)</label>
+                        <input type="text" id="studentName" placeholder="Your name" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Enter Exam
+                    </button>
+                </form>
+                <div id="loginError" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waitingScreen" class="waiting-screen hidden">
+            <div class="waiting-card">
+                <div class="waiting-icon">⏳</div>
+                <h2>Waiting for Exam to Start</h2>
+                <p>The instructor will start the exam shortly.</p>
+                <p>Please stay on this page.</p>
+                <div class="loading-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Screen -->
+        <div id="examScreen" class="exam-screen hidden">
+            <!-- Exam Header -->
+            <header class="exam-header">
+                <div class="exam-title">
+                    <span class="exam-icon">📝</span>
+                    <h1 id="examTitle">Exam</h1>
+                </div>
+                <div class="exam-timer" id="examTimer">02:00:00</div>
+                <div class="header-right">
+                    <div class="student-badge" id="studentBadge">Loading...</div>
+                    <button id="closeBtn" class="btn btn-close" onclick="requestExitFromExam()"
+                        title="Close Application">
+                        ✕ Close
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <div class="exam-container">
+                <!-- Question Navigation -->
+                <aside class="question-nav">
+                    <h3>Questions</h3>
+                    <div id="questionList" class="question-list">
+                        <!-- Question buttons will be inserted here -->
+                    </div>
+                    <div class="nav-legend">
+                        <span><span class="dot current"></span> Current</span>
+                        <span><span class="dot answered"></span> Answered</span>
+                        <span><span class="dot unanswered"></span> Not Answered</span>
+                    </div>
+                </aside>
+
+                <!-- Question Panel -->
+                <main class="question-panel">
+                    <div id="questionContent" class="question-content">
+                        <!-- Question will be rendered here -->
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="question-actions">
+                        <button id="prevBtn" class="btn btn-secondary" onclick="prevQuestion()">
+                            ← Previous
+                        </button>
+                        <button id="saveBtn" class="btn btn-outline" onclick="saveCurrentAnswer()">
+                            💾 Save Answer
+                        </button>
+                        <button id="nextBtn" class="btn btn-secondary" onclick="nextQuestion()">
+                            Next →
+                        </button>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Connection Status -->
+            <div id="connectionIndicator" class="connection-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Connected</span>
+            </div>
+        </div>
+
+        <!-- Submit Confirmation Modal -->
+        <div id="submitModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Submit Exam?</h2>
+                <p>Are you sure you want to submit your exam?</p>
+                <p class="warning">This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitExam()">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="exam.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LANLock - Instructor Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🔒</span>
+                <h1>LANLock Dashboard</h1>
+            </div>
+            <div class="exam-info">
+                <input type="text" id="sessionName" class="session-input" placeholder="Session: Final Exam" value="">
+                <div class="exam-settings">
+                    <label>
+                        <span>📄 Exam File:</span>
+                        <select id="examFile" class="exam-select">
+                            <option value="exam_data.json">Default Exam</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>⏱️ Duration:</span>
+                        <input type="number" id="examDuration" class="duration-input" value="60" min="1" max="300"> min
+                    </label>
+                    <label>
+                        <span>🔐 Exit Code:</span>
+                        <input type="text" id="exitCode" class="exit-code-input" placeholder="1234" value="1234"
+                            maxlength="6">
+                    </label>
+                </div>
+                <div id="timer" class="timer">--:--:--</div>
+            </div>
+            <div class="controls">
+                <button id="openLobbyBtn" class="btn btn-secondary" onclick="openLobby()">
+                    <span>📢</span> Open Lobby
+                </button>
+                <button id="startBtn" class="btn btn-primary" onclick="startExam()" disabled>
+                    <span>▶</span> Start Exam
+                </button>
+                <button id="stopBtn" class="btn btn-danger" onclick="stopExam()" disabled>
+                    <span>⏹</span> Stop Exam
+                </button>
+                <button id="resetBtn" class="btn btn-outline" onclick="resetExam()" style="display:none">
+                    <span>↺</span> Reset
+                </button>
+                <button id="shutdownBtn" class="btn btn-shutdown" onclick="shutdownServer()">
+                    <span>⏻</span> Shutdown
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="totalStudents">0</span>
+                    <span class="stat-label">Total Students</span>
+                </div>
+            </div>
+            <div class="stat-card online">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="onlineStudents">0</span>
+                    <span class="stat-label">Online</span>
+                </div>
+            </div>
+            <div class="stat-card focused">
+                <div class="stat-icon">👁</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="focusedStudents">0</span>
+                    <span class="stat-label">Focused</span>
+                </div>
+            </div>
+            <div class="stat-card violations">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="violationCount">0</span>
+                    <span class="stat-label">Violations</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Legend -->
+        <div class="legend">
+            <span class="legend-item"><span class="dot green"></span> Focused</span>
+            <span class="legend-item"><span class="dot yellow"></span> Focus Lost</span>
+            <span class="legend-item"><span class="dot red"></span> Offline</span>
+        </div>
+
+        <!-- Student Grid -->
+        <main class="main-content">
+            <div id="studentGrid" class="student-grid">
+                <div class="empty-state">
+                    <span class="empty-icon">📡</span>
+                    <p>Waiting for students to connect...</p>
+                    <p class="hint">Students should open the exam client and log in</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Violation Alert Toast -->
+        <div id="toastContainer" class="toast-container"></div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>LANLock Exam Proctoring System</span>
+            <span id="connectionStatus" class="connection-status">
+                <span class="status-dot"></span> Connecting...
+            </span>
+        </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
