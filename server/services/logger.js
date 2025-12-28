@@ -73,6 +73,7 @@ function listLogs() {
  * Read a log file
  * @param {string} filename 
  */
+// Read a log file...
 function readLog(filename) {
     const filePath = path.join(LOGS_DIR, filename);
     if (fs.existsSync(filePath)) {
@@ -81,9 +82,19 @@ function readLog(filename) {
     return null;
 }
 
+function warn(message) {
+    log(`[WARN] ${message}`);
+}
+
+function error(message) {
+    log(`[ERROR] ${message}`);
+}
+
 module.exports = {
     startSession,
     log,
+    warn,
+    error,
     listLogs,
     readLog
 };
