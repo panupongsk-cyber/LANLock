@@ -237,6 +237,15 @@ function createWindow() {
         show: needsSetup, // Show immediately in setup, delay in kiosk
     });
 
+    // Hardening for Windows Taskbar
+    if (!needsSetup) {
+        mainWindow.setMenuBarVisibility(false);
+        mainWindow.setMenu(null);
+        if (process.platform === 'win32') {
+            mainWindow.setKiosk(true);
+        }
+    }
+
     // Disable context menu
     mainWindow.webContents.on('context-menu', (e) => {
         e.preventDefault();
@@ -265,7 +274,9 @@ function createWindow() {
             mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
             // Disable dock on Linux for true fullscreen kiosk
-            disableDock();
+            if (process.platform === 'linux') {
+                disableDock();
+            }
 
             // Periodic focus check - enforce focus every 500ms during exam
             setInterval(() => {

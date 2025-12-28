@@ -257,8 +257,8 @@ const examState = {
             UPDATE exam_state 
             SET state = 'active',
                 is_active = 1, 
-                started_at = datetime('now'),
-                ends_at = datetime('now', '+' || ? || ' minutes')
+                started_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now'),
+                ends_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '+' || ? || ' minutes')
             WHERE id = 1
         `, [durationMinutes]);
     },
