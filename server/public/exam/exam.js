@@ -754,18 +754,31 @@ function startHeartbeat() {
     });
 }
 
+// Open submit confirmation modal
+function openSubmitModal() {
+    elements.submitModal.classList.remove('hidden');
+}
+
 // Submit exam
 async function submitExam() {
     closeModal();
 
-    // Save all answers first
+    // Show submitting state
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '⏳ Submitting...';
+    }
+
+    // Prepare all answers
     const answerList = Object.entries(answers).map(([id, ans]) => ({
         question_id: parseInt(id),
         answer: ans
     }));
 
     try {
-        await fetch('/api/answers/bulk', {
+        // Use the new submit endpoint that marks student as submitted
+        const res = await fetch('/api/exam/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -774,12 +787,25 @@ async function submitExam() {
             })
         });
 
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || 'Failed to submit');
+        }
+
+        // Stop auto-save and timer
+        if (autoSaveInterval) clearInterval(autoSaveInterval);
+        if (timerInterval) clearInterval(timerInterval);
+
         // Show completion screen
         showCompletionScreen();
 
     } catch (err) {
         console.error('Failed to submit:', err);
         alert('Failed to submit exam. Please try again.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '✓ Submit';
+        }
     }
 }
 

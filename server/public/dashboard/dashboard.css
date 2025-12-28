@@ -74,6 +74,27 @@ body {
     gap: 20px;
 }
 
+.session-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.session-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.session-name-text {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
 .exam-title {
     font-size: 1rem;
     color: var(--text-secondary);
@@ -277,6 +298,77 @@ body {
     color: var(--text-secondary);
 }
 
+.setup-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.setup-group .hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}
+
+/* Setup View Container */
+.setup-container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.setup-section {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    padding: 25px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.setup-actions {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.btn-large {
+    padding: 16px 48px;
+    font-size: 1.1rem;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
 /* Tabs */
 .tabs {
     display: flex;
@@ -426,6 +518,29 @@ body {
 
 .stat-card.violations .stat-value {
     color: var(--danger);
+}
+
+.stat-card.submitted .stat-value {
+    color: var(--success);
+}
+
+/* Student card submitted state */
+.student-card.submitted::before {
+    background: var(--success);
+}
+
+.student-card.submitted {
+    border-color: rgba(0, 217, 160, 0.3);
+}
+
+.student-submitted {
+    font-size: 0.75rem;
+    color: var(--success);
+    margin-top: 8px;
+    text-align: center;
+    padding: 5px;
+    background: rgba(0, 217, 160, 0.1);
+    border-radius: 5px;
 }
 
 /* Legend */

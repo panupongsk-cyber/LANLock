@@ -17,23 +17,9 @@
                 <h1>LANLock Dashboard</h1>
             </div>
             <div class="exam-info">
-                <input type="text" id="sessionName" class="session-input" placeholder="Session: Final Exam" value="">
-                <div class="exam-settings">
-                    <label>
-                        <span>📄 Exam File:</span>
-                        <select id="examFile" class="exam-select">
-                            <option value="exam_data.json">Default Exam</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>⏱️ Duration:</span>
-                        <input type="number" id="examDuration" class="duration-input" value="60" min="1" max="300"> min
-                    </label>
-                    <label>
-                        <span>🔐 Exit Code:</span>
-                        <input type="text" id="exitCode" class="exit-code-input" placeholder="1234" value="1234"
-                            maxlength="6">
-                    </label>
+                <div class="session-display">
+                    <span class="session-label">📋 Session:</span>
+                    <span id="sessionNameDisplay" class="session-name-text">Not configured</span>
                 </div>
                 <div id="timer" class="timer">--:--:--</div>
             </div>
@@ -56,78 +42,127 @@
             </div>
         </header>
 
-        <!-- Setup Panel (Collapsible or just above stats) -->
-        <div id="setupPanel" class="setup-panel">
-            <div class="setup-grid">
-                <div class="setup-group">
-                    <label>👥 Eligible Student IDs (Optional)</label>
-                    <textarea id="eligibleStudents" class="eligible-list-input"
-                        placeholder="Enter student IDs separated by commas..."></textarea>
-                    <p class="hint" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 5px;">Leave
-                        empty to allow all students.</p>
-                </div>
-                <div class="setup-group">
-                    <label>🔑 Registration Password (Optional)</label>
-                    <input type="text" id="regPassword" class="session-input" placeholder="Lobby password...">
 
-                    <label style="margin-top: 15px;">🔐 Exit Code</label>
-                    <input type="text" id="exitCode" class="session-input" placeholder="1234" value="1234">
-                </div>
-            </div>
-        </div>
 
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-            <div class="stat-card server-info">
-                <div class="stat-icon">🌐</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="serverIpDisplay">...</span>
-                    <span class="stat-label">Server Address</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">👥</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="totalStudents">0</span>
-                    <span class="stat-label">Total Students</span>
-                </div>
-            </div>
-            <div class="stat-card online">
-                <div class="stat-icon">🟢</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="onlineStudents">0</span>
-                    <span class="stat-label">Online</span>
-                </div>
-            </div>
-            <div class="stat-card focused">
-                <div class="stat-icon">👁</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="focusedStudents">0</span>
-                    <span class="stat-label">Focused</span>
-                </div>
-            </div>
-            <div class="stat-card violations">
-                <div class="stat-icon">⚠️</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="violationCount">0</span>
-                    <span class="stat-label">Violations</span>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('students')">Students</button>
-            <button class="tab-btn" onclick="switchTab('logs')">Exam Logs</button>
+            <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
+            <button class="tab-btn" onclick="switchTab('proctor')">👁️ Proctor</button>
+            <button class="tab-btn" onclick="switchTab('logs')">📋 Logs</button>
         </div>
 
-        <!-- Student Grid -->
-        <main id="studentsView" class="main-content">
+        <!-- Setup View -->
+        <main id="setupView" class="main-content">
+            <div class="setup-container">
+                <div class="setup-section">
+                    <h2 class="section-title">📝 Session Configuration</h2>
+                    <div class="setup-grid">
+                        <div class="setup-group">
+                            <label>📄 Session Name</label>
+                            <input type="text" id="sessionNameSetup" class="session-input"
+                                placeholder="Final Exam - Section A">
+                        </div>
+                        <div class="setup-group">
+                            <label>📄 Exam File</label>
+                            <select id="examFileSetup" class="exam-select">
+                                <option value="exam_data.json">Default Exam</option>
+                            </select>
+                        </div>
+                        <div class="setup-group">
+                            <label>⏱️ Duration (minutes)</label>
+                            <input type="number" id="examDurationSetup" class="session-input" value="60" min="1"
+                                max="300">
+                        </div>
+                        <div class="setup-group">
+                            <label>🔐 Exit Code</label>
+                            <input type="text" id="exitCode" class="session-input" placeholder="1234" value="1234"
+                                maxlength="6">
+                            <p class="hint">Code for students to exit the app</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setup-section">
+                    <h2 class="section-title">🔒 Access Control</h2>
+                    <div class="setup-grid">
+                        <div class="setup-group full-width">
+                            <label>👥 Eligible Student IDs (Optional)</label>
+                            <textarea id="eligibleStudents" class="eligible-list-input" rows="4" placeholder="Enter student IDs separated by commas...
+Example: 64000001, 64000002, 64000003"></textarea>
+                            <p class="hint">Leave empty to allow all students.</p>
+                        </div>
+                        <div class="setup-group">
+                            <label>🔑 Registration Password (Optional)</label>
+                            <input type="text" id="regPassword" class="session-input"
+                                placeholder="Password for lobby...">
+                            <p class="hint">Students must enter this to join</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setup-actions">
+                    <button id="openLobbyBtnSetup" class="btn btn-primary btn-large" onclick="openLobby()">
+                        <span>📢</span> Open Lobby & Allow Students
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Proctor View -->
+        <main id="proctorView" class="main-content hidden">
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-card server-info">
+                    <div class="stat-icon">🌐</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="serverIpDisplayProctor">...</span>
+                        <span class="stat-label">Server Address</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="totalStudentsProctor">0</span>
+                        <span class="stat-label">Total Students</span>
+                    </div>
+                </div>
+                <div class="stat-card online">
+                    <div class="stat-icon">🟢</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="onlineStudentsProctor">0</span>
+                        <span class="stat-label">Online</span>
+                    </div>
+                </div>
+                <div class="stat-card focused">
+                    <div class="stat-icon">👁</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="focusedStudentsProctor">0</span>
+                        <span class="stat-label">Focused</span>
+                    </div>
+                </div>
+                <div class="stat-card violations">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="violationCountProctor">0</span>
+                        <span class="stat-label">Violations</span>
+                    </div>
+                </div>
+                <div class="stat-card submitted">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <span class="stat-value" id="submittedCountProctor">0</span>
+                        <span class="stat-label">Submitted</span>
+                    </div>
+                </div>
+            </div>
+
             <div id="studentGrid" class="student-grid">
                 <div class="empty-state">
                     <span class="empty-icon">📡</span>
                     <p>Waiting for students to connect...</p>
-                    <p class="hint">Students should open the exam client and log in</p>
+                    <p class="hint">Open lobby first, then students can connect</p>
                 </div>
             </div>
         </main>

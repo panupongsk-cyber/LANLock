@@ -37,11 +37,59 @@ async function init() {
     const schema = fs.readFileSync(schemaPath, 'utf-8');
     db.run(schema);
 
+    // Run migrations for existing databases
+    migrateDatabase();
+
     // Save database
     saveDatabase();
 
     console.log('✓ Database initialized at:', config.DB_PATH);
     return db;
+}
+
+/**
+ * Run migrations to add missing columns to existing databases
+ */
+function migrateDatabase() {
+    // Check if reg_password column exists in exam_state
+    try {
+        const columns = all("PRAGMA table_info(exam_state)");
+        const columnNames = columns.map(c => c.name);
+
+        // Add reg_password if missing
+        if (!columnNames.includes('reg_password')) {
+            console.log('Migrating: Adding reg_password column to exam_state');
+            db.run('ALTER TABLE exam_state ADD COLUMN reg_password TEXT');
+        }
+
+        // Add eligible_students if missing
+        if (!columnNames.includes('eligible_students')) {
+            console.log('Migrating: Adding eligible_students column to exam_state');
+            db.run('ALTER TABLE exam_state ADD COLUMN eligible_students TEXT');
+        }
+
+        // Add exit_code if missing
+        if (!columnNames.includes('exit_code')) {
+            console.log('Migrating: Adding exit_code column to exam_state');
+            db.run("ALTER TABLE exam_state ADD COLUMN exit_code TEXT DEFAULT '1234'");
+        }
+    } catch (err) {
+        console.error('Migration error (exam_state):', err.message);
+    }
+
+    // Check students table for submitted_at column
+    try {
+        const studentColumns = all("PRAGMA table_info(students)");
+        const studentColumnNames = studentColumns.map(c => c.name);
+
+        // Add submitted_at if missing
+        if (!studentColumnNames.includes('submitted_at')) {
+            console.log('Migrating: Adding submitted_at column to students');
+            db.run('ALTER TABLE students ADD COLUMN submitted_at DATETIME DEFAULT NULL');
+        }
+    } catch (err) {
+        console.error('Migration error (students):', err.message);
+    }
 }
 
 /**
@@ -184,9 +232,20 @@ const students = {
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'online' THEN 1 ELSE 0 END) as online,
                 SUM(CASE WHEN status = 'online' AND is_focused = 1 THEN 1 ELSE 0 END) as focused,
-                SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline
+                SUM(CASE WHEN status = 'offline' THEN 1 ELSE 0 END) as offline,
+                SUM(CASE WHEN submitted_at IS NOT NULL THEN 1 ELSE 0 END) as submitted
             FROM students
-        `) || { total: 0, online: 0, focused: 0, offline: 0 };
+        `) || { total: 0, online: 0, focused: 0, offline: 0, submitted: 0 };
+    },
+
+    submit: (id) => {
+        return run(`
+            UPDATE students SET submitted_at = datetime('now') WHERE id = ?
+        `, [id]);
+    },
+
+    clearSubmissions: () => {
+        return run('UPDATE students SET submitted_at = NULL');
     },
 
     clearAll: () => {

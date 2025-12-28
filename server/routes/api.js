@@ -190,6 +190,41 @@ router.post('/answers/bulk', (req, res) => {
     }
 });
 
+// POST /api/exam/submit - Student submits their exam
+router.post('/exam/submit', (req, res) => {
+    const { student_id, answers } = req.body;
+
+    if (!student_id) {
+        return res.status(400).json({ error: 'student_id is required' });
+    }
+
+    try {
+        // Save all answers if provided
+        if (Array.isArray(answers)) {
+            for (const { question_id, answer } of answers) {
+                const answerStr = typeof answer === 'object' ? JSON.stringify(answer) : String(answer);
+                db.answers.save(student_id, question_id, answerStr);
+            }
+        }
+
+        // Mark student as submitted
+        db.students.submit(student_id);
+
+        // Log the submission
+        const student = db.students.getById(student_id);
+        const studentName = student?.name || student_id;
+        logger.log(`[Submit] ${studentName} (${student_id}) submitted exam`);
+
+        // Broadcast update to dashboard
+        socketService.broadcastStudentList();
+
+        res.json({ success: true, message: 'Exam submitted successfully' });
+    } catch (err) {
+        console.error('Submit error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/answers/:student_id - Get answers for a student
 router.get('/answers/:student_id', (req, res) => {
     const { student_id } = req.params;

@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS students (
     connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_heartbeat DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'offline',
-    is_focused INTEGER DEFAULT 1
+    is_focused INTEGER DEFAULT 1,
+    submitted_at DATETIME DEFAULT NULL
 );
 
 -- Answers table: stores student submissions

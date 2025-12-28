@@ -10,24 +10,37 @@ let timerInterval = null;
 
 // DOM Elements
 const elements = {
-    sessionName: document.getElementById('sessionName'),
+    // Header elements
     timer: document.getElementById('timer'),
+    sessionNameDisplay: document.getElementById('sessionNameDisplay'),
     openLobbyBtn: document.getElementById('openLobbyBtn'),
     startBtn: document.getElementById('startBtn'),
     stopBtn: document.getElementById('stopBtn'),
     resetBtn: document.getElementById('resetBtn'),
     shutdownBtn: document.getElementById('shutdownBtn'),
-    studentGrid: document.getElementById('studentGrid'),
-    totalStudents: document.getElementById('totalStudents'),
-    onlineStudents: document.getElementById('onlineStudents'),
-    focusedStudents: document.getElementById('focusedStudents'),
-    violationCount: document.getElementById('violationCount'),
     toastContainer: document.getElementById('toastContainer'),
-    serverIpDisplay: document.getElementById('serverIpDisplay'),
+
+    // Setup tab elements
+    sessionNameSetup: document.getElementById('sessionNameSetup'),
+    examFileSetup: document.getElementById('examFileSetup'),
+    examDurationSetup: document.getElementById('examDurationSetup'),
+    exitCode: document.getElementById('exitCode'),
     eligibleStudents: document.getElementById('eligibleStudents'),
     regPassword: document.getElementById('regPassword'),
-    exitCode: document.getElementById('exitCode'),
-    studentsView: document.getElementById('studentsView'),
+    openLobbyBtnSetup: document.getElementById('openLobbyBtnSetup'),
+
+    // Proctor tab elements
+    studentGrid: document.getElementById('studentGrid'),
+    serverIpDisplayProctor: document.getElementById('serverIpDisplayProctor'),
+    totalStudentsProctor: document.getElementById('totalStudentsProctor'),
+    onlineStudentsProctor: document.getElementById('onlineStudentsProctor'),
+    focusedStudentsProctor: document.getElementById('focusedStudentsProctor'),
+    violationCountProctor: document.getElementById('violationCountProctor'),
+    submittedCountProctor: document.getElementById('submittedCountProctor'),
+
+    // View containers
+    setupView: document.getElementById('setupView'),
+    proctorView: document.getElementById('proctorView'),
     logsView: document.getElementById('logsView'),
     logList: document.getElementById('logList'),
     logContent: document.getElementById('logContent')
@@ -64,11 +77,17 @@ function initSocket() {
         examState = state;
         updateExamControls(state);
 
+        // Update session name display in header
+        if (elements.sessionNameDisplay) {
+            elements.sessionNameDisplay.textContent = state.exam_title || 'Not configured';
+        }
+
         // Sync setup fields if in lobby or active
         if (state.state === 'lobby' || state.state === 'active') {
             if (elements.eligibleStudents) elements.eligibleStudents.value = state.eligible_students || '';
             if (elements.regPassword) elements.regPassword.value = state.reg_password || '';
             if (elements.exitCode) elements.exitCode.value = state.exit_code || '1234';
+            if (elements.sessionNameSetup) elements.sessionNameSetup.value = state.exam_title || '';
         }
     });
 
@@ -98,11 +117,15 @@ async function fetchServerInfo() {
         const res = await fetch('/api/server-info');
         const data = await res.json();
         if (data.ip) {
-            elements.serverIpDisplay.textContent = `${data.ip}:${data.port}`;
+            if (elements.serverIpDisplayProctor) {
+                elements.serverIpDisplayProctor.textContent = `${data.ip}:${data.port}`;
+            }
         }
     } catch (err) {
         console.error('Failed to fetch server info:', err);
-        elements.serverIpDisplay.textContent = 'Unknown';
+        if (elements.serverIpDisplayProctor) {
+            elements.serverIpDisplayProctor.textContent = 'Unknown';
+        }
     }
 }
 
@@ -122,11 +145,12 @@ function updateStudentGrid(students) {
     elements.studentGrid.innerHTML = students.map(student => {
         const status = getStudentStatus(student);
         const initials = getInitials(student.name || student.id);
-        const statusText = getStatusText(status);
+        const statusText = getStatusText(status, student.submitted_at);
         const lastSeen = formatTime(student.last_heartbeat);
+        const isSubmitted = student.submitted_at ? 'submitted' : '';
 
         return `
-            <div class="student-card ${status}">
+            <div class="student-card ${status} ${isSubmitted}">
                 <div class="student-header">
                     <div class="student-avatar">${initials}</div>
                     <div class="student-info">
@@ -137,6 +161,7 @@ function updateStudentGrid(students) {
                 </div>
                 <div class="student-status">${statusText}</div>
                 <div class="student-time">Last seen: ${lastSeen}</div>
+                ${student.submitted_at ? `<div class="student-submitted">✅ Submitted at ${formatTime(student.submitted_at)}</div>` : ''}
             </div>
         `;
     }).join('');
@@ -150,7 +175,8 @@ function getStudentStatus(student) {
 }
 
 // Get status text
-function getStatusText(status) {
+function getStatusText(status, submittedAt) {
+    if (submittedAt) return '✅ Submitted';
     switch (status) {
         case 'online': return '🟢 Focused';
         case 'unfocused': return '🟡 Focus Lost';
@@ -161,69 +187,76 @@ function getStatusText(status) {
 
 // Update statistics
 function updateStats(stats) {
-    elements.totalStudents.textContent = stats.total || 0;
-    elements.onlineStudents.textContent = stats.online || 0;
-    elements.focusedStudents.textContent = stats.focused || 0;
-    elements.violationCount.textContent = stats.violations || 0;
+    if (elements.totalStudentsProctor) elements.totalStudentsProctor.textContent = stats.total || 0;
+    if (elements.onlineStudentsProctor) elements.onlineStudentsProctor.textContent = stats.online || 0;
+    if (elements.focusedStudentsProctor) elements.focusedStudentsProctor.textContent = stats.focused || 0;
+    if (elements.violationCountProctor) elements.violationCountProctor.textContent = stats.violations || 0;
+    if (elements.submittedCountProctor) elements.submittedCountProctor.textContent = stats.submitted || 0;
 }
 
 // Update exam controls based on state
 // States: 'setup' | 'lobby' | 'active' | 'ended'
 function updateExamControls(state) {
-    const examState = state.state || 'setup';
+    const currentState = state.state || 'setup';
 
     // Get element references
-    const durationInput = document.getElementById('examDuration');
-    const examFile = document.getElementById('examFile');
-    const sessionName = elements.sessionName;
+    const durationInput = elements.examDurationSetup;
+    const examFile = elements.examFileSetup;
+    const sessionNameSetup = elements.sessionNameSetup;
 
-    switch (examState) {
+    switch (currentState) {
         case 'setup':
-            elements.openLobbyBtn.disabled = false;
-            elements.openLobbyBtn.style.display = '';
-            elements.startBtn.disabled = true;
-            elements.startBtn.style.display = '';
-            elements.stopBtn.disabled = true;
-            elements.stopBtn.style.display = '';
-            elements.resetBtn.style.display = 'none';
+            if (elements.openLobbyBtn) elements.openLobbyBtn.disabled = false;
+            if (elements.openLobbyBtn) elements.openLobbyBtn.style.display = '';
+            if (elements.startBtn) elements.startBtn.disabled = true;
+            if (elements.startBtn) elements.startBtn.style.display = '';
+            if (elements.stopBtn) elements.stopBtn.disabled = true;
+            if (elements.stopBtn) elements.stopBtn.style.display = '';
+            if (elements.resetBtn) elements.resetBtn.style.display = 'none';
 
             // Enable settings
             if (durationInput) durationInput.disabled = false;
             if (examFile) examFile.disabled = false;
-            if (sessionName) sessionName.disabled = false;
+            if (sessionNameSetup) sessionNameSetup.disabled = false;
+            if (elements.openLobbyBtnSetup) elements.openLobbyBtnSetup.disabled = false;
             stopTimer();
             break;
 
         case 'lobby':
-            elements.openLobbyBtn.disabled = true;
-            elements.openLobbyBtn.style.display = '';
-            elements.startBtn.disabled = false;
-            elements.startBtn.style.display = '';
-            elements.stopBtn.disabled = true;
-            elements.stopBtn.style.display = '';
-            elements.resetBtn.style.display = '';
+            if (elements.openLobbyBtn) elements.openLobbyBtn.disabled = true;
+            if (elements.openLobbyBtn) elements.openLobbyBtn.style.display = '';
+            if (elements.startBtn) elements.startBtn.disabled = false;
+            if (elements.startBtn) elements.startBtn.style.display = '';
+            if (elements.stopBtn) elements.stopBtn.disabled = true;
+            if (elements.stopBtn) elements.stopBtn.style.display = '';
+            if (elements.resetBtn) elements.resetBtn.style.display = '';
 
             // Disable settings but not timer
             if (durationInput) durationInput.disabled = false; // Can still change duration
             if (examFile) examFile.disabled = true;
-            if (sessionName) sessionName.disabled = true;
+            if (sessionNameSetup) sessionNameSetup.disabled = true;
+            if (elements.openLobbyBtnSetup) elements.openLobbyBtnSetup.disabled = true;
+
+            // Auto switch to proctor tab when lobby is opened
+            switchTab('proctor');
             break;
 
         case 'active':
-            elements.openLobbyBtn.style.display = 'none';
-            elements.startBtn.disabled = true;
-            elements.startBtn.style.display = 'none';
-            elements.stopBtn.disabled = false;
-            elements.stopBtn.style.display = '';
-            elements.resetBtn.style.display = 'none';
+            if (elements.openLobbyBtn) elements.openLobbyBtn.style.display = 'none';
+            if (elements.startBtn) elements.startBtn.disabled = true;
+            if (elements.startBtn) elements.startBtn.style.display = 'none';
+            if (elements.stopBtn) elements.stopBtn.disabled = false;
+            if (elements.stopBtn) elements.stopBtn.style.display = '';
+            if (elements.resetBtn) elements.resetBtn.style.display = 'none';
 
             // Disable all settings
             if (durationInput) durationInput.disabled = true;
             if (examFile) examFile.disabled = true;
-            if (sessionName) sessionName.disabled = true;
+            if (sessionNameSetup) sessionNameSetup.disabled = true;
             if (elements.eligibleStudents) elements.eligibleStudents.disabled = true;
             if (elements.regPassword) elements.regPassword.disabled = true;
             if (elements.exitCode) elements.exitCode.disabled = true;
+            if (elements.openLobbyBtnSetup) elements.openLobbyBtnSetup.disabled = true;
 
             if (state.ends_at) {
                 startTimer(state.ends_at);
@@ -231,22 +264,22 @@ function updateExamControls(state) {
             break;
 
         case 'ended':
-            elements.openLobbyBtn.style.display = 'none';
-            elements.startBtn.style.display = 'none';
-            elements.stopBtn.disabled = true;
-            elements.stopBtn.style.display = 'none';
-            elements.resetBtn.style.display = '';
+            if (elements.openLobbyBtn) elements.openLobbyBtn.style.display = 'none';
+            if (elements.startBtn) elements.startBtn.style.display = 'none';
+            if (elements.stopBtn) elements.stopBtn.disabled = true;
+            if (elements.stopBtn) elements.stopBtn.style.display = 'none';
+            if (elements.resetBtn) elements.resetBtn.style.display = '';
 
             stopTimer();
-            elements.timer.textContent = 'Ended';
+            if (elements.timer) elements.timer.textContent = 'Ended';
             break;
     }
 }
 
 // Open lobby - allow students to connect
 async function openLobby() {
-    const sessionName = elements.sessionName.value.trim() || 'Exam Session';
-    const exitCode = elements.exitCode.value.trim() || '1234';
+    const sessionName = (elements.sessionNameSetup?.value || '').trim() || 'Exam Session';
+    const exitCode = elements.exitCode?.value?.trim() || '1234';
     const regPassword = elements.regPassword.value.trim() || null;
     const eligibleStudents = elements.eligibleStudents.value.trim() || null;
 
@@ -293,8 +326,8 @@ async function openLobby() {
 
 // Start exam (from lobby state)
 async function startExam() {
-    const durationInput = document.getElementById('examDuration');
-    const duration = parseInt(durationInput.value) || 60;
+    const durationInput = elements.examDurationSetup;
+    const duration = parseInt(durationInput?.value) || 60;
 
     if (duration < 1 || duration > 300) {
         alert('Duration must be between 1 and 300 minutes');
@@ -618,15 +651,25 @@ function switchTab(tab) {
     const tabs = document.querySelectorAll('.tab-btn');
     tabs.forEach(t => t.classList.remove('active'));
 
-    if (tab === 'students') {
-        elements.studentsView.classList.remove('hidden');
-        elements.logsView.classList.add('hidden');
-        document.querySelector('.tab-btn[onclick*="students"]').classList.add('active');
-    } else {
-        elements.studentsView.classList.add('hidden');
-        elements.logsView.classList.remove('hidden');
-        document.querySelector('.tab-btn[onclick*="logs"]').classList.add('active');
-        fetchLogList();
+    // Hide all views
+    if (elements.setupView) elements.setupView.classList.add('hidden');
+    if (elements.proctorView) elements.proctorView.classList.add('hidden');
+    if (elements.logsView) elements.logsView.classList.add('hidden');
+
+    switch (tab) {
+        case 'setup':
+            if (elements.setupView) elements.setupView.classList.remove('hidden');
+            document.querySelector('.tab-btn[onclick*="setup"]')?.classList.add('active');
+            break;
+        case 'proctor':
+            if (elements.proctorView) elements.proctorView.classList.remove('hidden');
+            document.querySelector('.tab-btn[onclick*="proctor"]')?.classList.add('active');
+            break;
+        case 'logs':
+            if (elements.logsView) elements.logsView.classList.remove('hidden');
+            document.querySelector('.tab-btn[onclick*="logs"]')?.classList.add('active');
+            fetchLogList();
+            break;
     }
 }
 
